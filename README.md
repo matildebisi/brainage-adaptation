@@ -5,11 +5,15 @@ Code supporting the master's thesis experiments on cross-population transfer of
 custom 3D PiSSA and FiltLoRA, subject-level cross-validation, oversampling,
 ensemble experiments and selected statistical analyses.
 
+
 ## Code provenance and acknowledgements
 
-This repository builds on research code developed by **Michela Gravina**, **Georgia Kenyon** and **Sophie Martin**.
-The codebase has since been adapted, extended and reorganized for the
-experiments reported in this master's thesis.
+This repository builds on the original brain-age prediction code developed by **Michela Gravina**, available [here](https://github.com/MichiUnina/Assessing-Demographic-Bias-in-Brain-Age-Prediction-Models-Using-Multiple-Deep-Learning-Paradigms).
+
+The codebase was subsequently extended by **Georgia Kenyon** and **Sophie Martin** to investigate transfer learning for brain-age prediction.
+
+Building on their work, the code has been further adapted, extended, and reorganized for the experiments reported in this master's thesis.
+
 
 ## Layout
 
