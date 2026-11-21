@@ -15,6 +15,19 @@ The codebase was subsequently extended by **Georgia Kenyon** and **Sophie Martin
 Building on their work, the code has been further adapted, extended, and reorganized for the experiments reported in this master's thesis.
 
 
+
+## Contributions of this thesis
+
+Building on the previous work, this master's thesis extends the transfer learning framework through:
+
+- **Cross-validation:** Extension to four subject-level folds to assess the consistency of adaptation results.
+- **Parameter-efficient fine-tuning (PEFT):** Integration of LoRA and DoRA as alternatives to conventional fine-tuning.
+- **Custom 3D adapters:** Implementation of PiSSA and FiltLoRA for 3D convolutional layers.
+- **Ensemble learning:** Investigation of frozen ensembles combining pretrained brain-age models.
+- **Statistical analyses:** Evaluation of adaptation improvements, age-related prediction bias, and acquisition-site effects.
+
+
+
 ## Layout
 
 ```text
