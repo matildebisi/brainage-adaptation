@@ -1,0 +1,33 @@
+# Do not commit MRI volumes, subject metadata, or model checkpoints.
+*.nii
+*.nii.gz
+*.npy
+*.npz
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.h5
+*.hdf5
+*.csv
+*.tsv
+*.xlsx
+*.parquet
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.zip
+
+# Local inputs, predictions, training outputs.
+/data/*
+!/data/README.md
+/checkpoints/
+/outputs/
+/results/
+/splits/
+/.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store

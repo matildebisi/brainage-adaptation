@@ -1,0 +1,14 @@
+# Install a CUDA-compatible PyTorch build separately when using a GPU.
+torch
+monai
+peft
+safetensors
+numpy
+pandas
+scikit-learn
+nibabel
+scipy
+matplotlib
+tqdm
+tensorboard
+statsmodels
