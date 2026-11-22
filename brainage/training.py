@@ -2,8 +2,6 @@
 """
 Training-related utilities: single-stage loop and (optionally) progressive training.
 
-Refactor is minimal:
-Parameters and metrics are passed explicitly to each training stage.
 """
 
 import os
@@ -28,7 +26,6 @@ def train_loop(
     save_path,
     opt,
     freeze_mode,
-    ft_tag,
     stage_tag="stage1",
     patience=20,
     min_delta=1e-4,

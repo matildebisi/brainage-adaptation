@@ -124,7 +124,7 @@ df = df.dropna(
     subset=[
         AGE_COL,
         "signed_error",
-        "category",
+        "Adaptation",
     ]
 ).copy()
 

@@ -1,6 +1,6 @@
 # inference.py
 """
-Inference and evaluation logic, moved out of main.py.
+Inference and evaluation logic
 """
 
 import os

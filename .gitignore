@@ -18,6 +18,11 @@
 *.jpg
 *.jpeg
 *.zip
+.env
+.env.*
+!.env.example
+/runs/
+*.log
 
 # Local inputs, predictions, training outputs.
 /data/*

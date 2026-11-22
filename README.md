@@ -1,9 +1,6 @@
 # Brain-age transfer learning
 
-Code supporting the master's thesis experiments on cross-population transfer of
-3D DenseNet brain-age models. It includes conventional fine-tuning, LoRA, DoRA,
-custom 3D PiSSA and FiltLoRA, subject-level cross-validation, oversampling,
-ensemble experiments and selected statistical analyses.
+This repository contains code developed and extended as part of a master's thesis investigating cross-population adaptation of 3D DenseNet brain-age prediction models. It includes conventional fine-tuning, parameter-efficient methods (LoRA, DoRA, PiSSA, and FiltLoRA), subject-level cross-validation, oversampling, ensemble experiments, and statistical analyses of predictive performance and model biases.
 
 
 ## Code provenance and acknowledgements
@@ -39,14 +36,14 @@ brainage/
   training.py
   inference.py          # Test inference after training
   infer_all_subjects.py # Development inference from selected checkpoints
-  zero_shot.py            # Inference from an unadapted pretrained checkpoint
+  zero_shot.py          # Inference from an unadapted pretrained checkpoint
 scripts/
   run_traditional.sh
   run_peft.sh
   run_oversampling.sh
 analysis/
   merge_predictions.py      # Merge predictions across runs and seeds
-  prepare_subject_errors.py # Build the subject-level error table 
+  prepare_subject_errors.py # Build the subject-level error table
   select_models.py          # Validation-only model selection
   summarize_runs.py         # Summarise completed training runs
   age_bias.R                # Mixed-model age bias comparisons
@@ -87,80 +84,10 @@ For statistical analyses install the R packages `ARTool`, `emmeans`, `dplyr`,
 `readr`, `tidyr`, `purrr`, `tibble`, `lme4`, and `lmerTest`.
 
 
-## Workflow overview
-
-The experimental workflow consists of the following steps:
-
-### 1. Prepare the development folds
-
-- **Script:** `brainage/data/splits.py`
-- **Inputs:** Development metadata (`<DEVELOPMENT_CSV>`) and preprocessed MRI volumes (`<IMAGE_ROOT>`).
-- **Outputs:** Four subject-level training/validation splits saved in `<SPLIT_DIR>`.
-
-These splits are used consistently throughout training and model selection.
-
-### 2. Fine-tune the models
-
-- **Scripts:** `brainage/main.py`, launched through `scripts/run_traditional.sh`, `scripts/run_peft.sh`, or `scripts/run_oversampling.sh`.
-- **Inputs:** Pretrained checkpoints, development data, and the previously generated folds.
-- **Outputs:** Trained checkpoints, `TL_summary.json`, and individual test prediction CSVs.
-
-Each experiment uses three folds for training and the remaining fold for validation. The best checkpoint is selected based on validation performance. At the end of training, `brainage/inference.py` automatically generates predictions on the held-out test set.
-
-### 3. Generate development predictions
-
-- **Script:** `brainage/infer_all_subjects.py`
-- **Inputs:** Saved checkpoints (`TL_summary.json`), development metadata, and preprocessed MRI volumes.
-- **Outputs:** `development_predictions.csv` for each experiment and seed.
-
-The selected checkpoints are used to predict ages across the development cohort. These predictions are subsequently evaluated only on the validation subjects corresponding to each fold.
-
-### 4. Merge development predictions
-
-- **Script:** `analysis/merge_predictions.py` (`--mode development`)
-- **Inputs:** Individual `development_predictions.csv` files and `<DEVELOPMENT_CSV>`.
-- **Output:** `<VALIDATION_PREDICTIONS_CSV>`.
-
-The predictions from all model configurations and seeds are combined into a single subject-level table.
-
-### 5. Select the best model configurations using validation data
-
-- **Script:** `analysis/select_models.py`
-- **Inputs:** `<VALIDATION_PREDICTIONS_CSV>` and `<SPLIT_DIR>`.
-- **Outputs:** Validation performance summaries and `selected_models_validation_all_TPs.csv`.
-
-For each pretrained model and adaptation strategy, the best configuration is selected based on its mean validation MAE across the four folds. **The held-out test set is not used for model selection.**
-
-### 6. Merge test predictions
-
-- **Script:** `analysis/merge_predictions.py` (`--mode test`)
-- **Inputs:** Individual test prediction CSVs generated during training and `<TEST_CSV>`.
-- **Output:** `<TEST_PREDICTIONS_CSV>`.
-
-Predictions from all experiments and seeds are combined into a single table for final evaluation.
-
-### 7. Compute subject-level prediction errors
-
-- **Script:** `analysis/prepare_subject_errors.py`
-- **Inputs:** `<TEST_PREDICTIONS_CSV>` and `selected_models_validation_all_TPs.csv`.
-- **Output:** `ART_pretraining_adaptation_subject_errors_mean_individual_errors.csv`.
-
-For each selected configuration, predictions from the four fold-specific models are used to compute subject-level signed and absolute errors, following the aggregation and subject-exclusion criteria used in the thesis.
-
-### 8. Perform statistical analyses
-
-- **Scripts:** `analysis/improvement_analysis.R`, `analysis/age_bias.R`, `analysis/site_effects.R`, and `analysis/age_bias_plot.py`.
-- **Inputs:** Subject-level error table and, where required, the development fold definitions.
-- **Outputs:** Statistical comparisons and plots evaluating adaptation improvements, age-related bias, and acquisition-site effects.
-
-**Note:** Zero-shot predictions used in the subject-level statistical analyses are included as inference-only runs (`freeze_mode=none`). The separate `brainage/zero_shot.py` script provides standalone inference from an unadapted pretrained checkpoint.
-
-The sections below provide the commands and configuration details for each step.
-
-
 ## Training on an SGE cluster
 
 Training experiments were run using Sun Grid Engine (SGE).
+Submission commands are provided in Step 2 of the experimental workflow below.
 Three standalone Bash scripts are provided:
 
 - `scripts/run_traditional.sh`: conventional fine-tuning.
@@ -190,34 +117,6 @@ The oversampling script supports both conventional
 fine-tuning and PEFT methods. The `MIN_SAMPLES_PER_BIN`
 parameter controls the oversampling target.
 
-### Running experiments
-
-Submit jobs from the repository root:
-
-```bash
-qsub scripts/run_traditional.sh
-qsub scripts/run_peft.sh
-qsub scripts/run_oversampling.sh
-```
-
-The scripts use SGE job arrays (`-t 1-4`) to run four
-precomputed cross-validation folds, with seeds 1–4.
-
-The PEFT method can also be selected at submission time:
-
-```bash
-qsub -v METHOD=PiSSA scripts/run_peft.sh
-qsub -v METHOD=FiltLoRA scripts/run_peft.sh
-```
-
-Resource requests, including GPU type, memory, and
-wall time, should be adjusted to the available cluster.
-
-These scripts illustrate the experimental workflow.
-The default hyperparameters are examples and do not
-represent every configuration evaluated in the thesis.
-
-
 ### Adapter choices
 
 | `METHOD` | Implemented using | Notes |
@@ -240,19 +139,69 @@ branch, and stores the residual in the frozen base kernel.
 low-rank projections. This filter uses a fixed spatial Gaussian kernel and
 per-sample/channel trigonometric weights derived from the activation range.
 
-## Analyses and ensembles
 
-`analysis/ensembles.py` contains the TP1-only versus TP1+TP3 frozen
-ensemble experiment (mean/learned weights, gate and ridge stacking). Run
-`python analysis/ensembles.py --help` for its required prediction CSV, split
-directory and output path. Model-selection input must come from the development
-folds, not the held-out test set.
+## Experimental workflow
 
-### 1. Generate development predictions
+The steps below describe the progression from subject-level cross-validation to
+final statistical analyses. Inputs, outputs, and commands are given for each step.
+Model configuration selection is performed **only on development validation
+folds**, never on the held-out test cohort.
 
-After fine-tuning, each run already contains `TL_summary.json`, the selected
-checkpoint and a test-prediction CSV produced by `brainage.main`/
-`brainage.inference`. To obtain the **development** predictions, run:
+### 1. Prepare development folds
+
+- **Script:** `brainage/data/splits.py`
+- **Inputs:** `<DEVELOPMENT_CSV>`, `<IMAGE_ROOT>`.
+- **Output:** Four subject-level training/validation splits in `<SPLIT_DIR>`.
+
+```bash
+python -m brainage.data.splits \
+  --csv '<DEVELOPMENT_CSV>' --img-root '<IMAGE_ROOT>' \
+  --output-dir '<SPLIT_DIR>' --prefix dataset \
+  --n-splits 4 --split-seed 42
+```
+
+All observations from the same subject are kept in the same fold. The saved
+folds must correspond to the development cohort used for model training and
+validation-based selection.
+
+### 2. Fine-tune models and generate test predictions
+
+- **Scripts:** `brainage/main.py`, `brainage/training.py`, and `brainage/inference.py`, launched via `scripts/run_traditional.sh`, `scripts/run_peft.sh`, or `scripts/run_oversampling.sh`.
+- **Inputs:** Pretrained checkpoint, `<DEVELOPMENT_CSV>`, `<TEST_CSV>`, `<IMAGE_ROOT>`, and `<SPLIT_DIR>`.
+- **Outputs:** Trained checkpoints, per-run `TL_summary.json`, and individual test prediction CSVs in `<RUNS_DIR>`.
+
+After configuring the SGE scripts (see **Training on an SGE cluster** above),
+submit the relevant jobs from the repository root:
+
+```bash
+qsub scripts/run_traditional.sh
+qsub scripts/run_peft.sh
+qsub scripts/run_oversampling.sh
+```
+
+Run only the scripts corresponding to the experiments you intend to perform.
+The job arrays (`-t 1-4`) run four precomputed folds (seeds 1–4). Each run
+trains on three folds and validates on the remaining fold, selecting its best
+checkpoint using validation performance. At the end of each training run,
+`brainage/inference.py` automatically generates predictions for the held-out
+test cohort. These test predictions are **not** used to choose configurations.
+
+The PEFT method can be specified at submission time:
+
+```bash
+qsub -v METHOD=PiSSA scripts/run_peft.sh
+qsub -v METHOD=FiltLoRA scripts/run_peft.sh
+```
+
+Resource requests should be adjusted to the target cluster. The provided
+default hyperparameters illustrate the workflow rather than every setting
+investigated in the thesis.
+
+### 3. Generate development predictions
+
+- **Script:** `brainage/infer_all_subjects.py`
+- **Inputs:** Run summaries (`TL_summary.json`), saved checkpoints, `<DEVELOPMENT_CSV>`, `<IMAGE_ROOT>`, and `<PRETRAINED_WEIGHTS_ROOT>`.
+- **Output:** A `development_predictions.csv` file for each run and seed.
 
 ```bash
 python -m brainage.infer_all_subjects \
@@ -262,59 +211,83 @@ python -m brainage.infer_all_subjects \
   --pretrained-root '<PRETRAINED_WEIGHTS_ROOT>'
 ```
 
-The script reads each `TL_summary.json`, loads the corresponding pretrained
-backbone and fine-tuned checkpoint, and writes `development_predictions.csv`
-next to the summary (`<RUNS_DIR>/TL_*/seedN/ft1p0/`). It uses the same validation
-image transform as the test inference. To process a single run, pass
-`--summary '<PATH_TO_TL_summary.json>'`; `--dry-run` checks available paths and
-configuration without running MRI inference.
+The script loads the selected checkpoints, predicts ages for the development
+cohort, and writes `development_predictions.csv` beside each `TL_summary.json`
+(under `<RUNS_DIR>/TL_*/seedN/ft1p0/`). Later, only the corresponding
+validation-fold subjects are used for model selection.
 
-For historical **FiltLoRA** runs that do not record `lora_alpha` in the summary,
-pass `--filter-alpha` with the **actual training value**. For example, add
-`--filter-alpha 16` only if that run used alpha 16. If values differ between
-runs, process them individually with `--summary` and the corresponding alpha.
-The script does not guess this value because it changes model predictions.
 
-### 2. Merge predictions across runs
+### 4. Merge development predictions
 
-Combine the existing per-run CSVs into wide tables (one prediction column per
-configuration and seed, matched on `SUBJ_ID`):
+- **Script:** `analysis/merge_predictions.py` (`--mode development`)
+- **Inputs:** Per-run `development_predictions.csv` files and `<DEVELOPMENT_CSV>`.
+- **Output:** `<VALIDATION_PREDICTIONS_CSV>`.
 
 ```bash
-# Development predictions: input from infer_all_subjects.py
 python analysis/merge_predictions.py \
   --runs-dir '<RUNS_DIR>' --base-csv '<DEVELOPMENT_CSV>' \
   --mode development --output '<VALIDATION_PREDICTIONS_CSV>'
+```
 
-# Test predictions: input from brainage.inference during training
+The script matches rows on `SUBJ_ID` and combines predictions into a single
+subject-level table with one column per model configuration and seed. It
+merges existing predictions; it does not perform inference.
+
+### 5. Select model configurations using validation folds
+
+- **Script:** `analysis/select_models.py`
+- **Inputs:** `<VALIDATION_PREDICTIONS_CSV>` and `<SPLIT_DIR>`.
+- **Outputs:** Validation performance summaries and `<VALIDATION_REPORT_DIR>/selected_models_validation_all_TPs.csv`.
+
+```bash
+python analysis/select_models.py \
+  --validation_results '<VALIDATION_PREDICTIONS_CSV>' \
+  --split_dir '<SPLIT_DIR>' \
+  --out_dir '<VALIDATION_REPORT_DIR>' \
+  --split_prefix dataset
+```
+
+For each pretrained model and adaptation strategy, configurations are compared
+using their mean MAE across the four validation folds. Only each model's
+corresponding validation subjects are evaluated; the held-out test set is
+not involved in this selection.
+
+
+### Summarise training runs (optional)
+
+`analysis/summarize_runs.py` aggregates the results of completed experiments across seeds, reporting the mean and standard deviation of:
+
+- **Validation performance:** best validation loss, R², and correlation.
+- **Training efficiency:** percentage of trainable parameters, total training duration (minutes), and average time per epoch (seconds).
+- **Training details:** epoch corresponding to the best validation performance.
+
+The resulting CSV contains one row per model configuration and records the number of seeds included in the summary. This facilitates comparisons of predictive performance and computational efficiency across adaptation strategies.
+
+```bash
+python analysis/summarize_runs.py --runs-dir '<RUNS_DIR>' \
+  --output '<SUMMARY_CSV>'
+```
+
+
+### 6. Merge test predictions
+
+- **Script:** `analysis/merge_predictions.py` (`--mode test`)
+- **Inputs:** Individual test prediction CSVs generated in Step 2 and `<TEST_CSV>`.
+- **Output:** `<TEST_PREDICTIONS_CSV>`.
+
+```bash
 python analysis/merge_predictions.py \
   --runs-dir '<RUNS_DIR>' --base-csv '<TEST_CSV>' \
   --mode test --output '<TEST_PREDICTIONS_CSV>'
 ```
 
-Both merged tables use the same model/seed naming convention, with the
-fine-tuning tag (e.g. `ft1p0`) appearing exactly once. The merger does not run
-inference; it combines previously generated CSVs.
+This combines all available test predictions by `SUBJ_ID`.
 
-### 3. Select models on validation folds
+### 7. Compute subject-level prediction errors
 
-```bash
-python analysis/select_models.py --validation_results '<VALIDATION_PREDICTIONS_CSV>' \
-  --split_dir '<SPLIT_DIR>' --out_dir '<VALIDATION_REPORT_DIR>' \
-  --split_prefix dataset
-
-# Optional overview of completed training runs
-python analysis/summarize_runs.py --runs-dir '<RUNS_DIR>' \
-  --output '<SUMMARY_CSV>'
-```
-
-Model selection uses only validation-fold subjects from the development cohort,
-not test predictions. Its output includes
-`<VALIDATION_REPORT_DIR>/selected_models_validation_all_TPs.csv`.
-
-### 4. Prepare subject-level errors on the held-out test set
-
-Use the merged test predictions and **validation-selected** configurations:
+- **Script:** `analysis/prepare_subject_errors.py`
+- **Inputs:** `<TEST_PREDICTIONS_CSV>` and `<VALIDATION_REPORT_DIR>/selected_models_validation_all_TPs.csv`.
+- **Output:** `<RESULTS_DIR>/ART_pretraining_adaptation_subject_errors_mean_individual_errors.csv`.
 
 ```bash
 python analysis/prepare_subject_errors.py \
@@ -324,17 +297,20 @@ python analysis/prepare_subject_errors.py \
   --exclude-qc-notes
 ```
 
-The output `ART_pretraining_adaptation_subject_errors_mean_individual_errors.csv`
-contains `Subject`, `Pretraining`, `Adaptation`, `Age`, `Sex`, `SiteGroup`,
-`abs_error` and `signed_error`, among other columns. The `--exclude-qc-notes`
-flag applies the subject exclusion rule used in the thesis. The absolute error
-is computed by averaging the **four individual absolute errors** per subject,
-not by taking the absolute error of the mean prediction.
+The resulting table includes `Subject`, `Pretraining`, `Adaptation`, `Age`,
+`Sex`, `SiteGroup`, `abs_error`, and `signed_error`. It combines test predictions
+for **validation-selected** configurations across four fold-specific models.
+The absolute error is the mean of the four individual absolute errors. The `--exclude-qc-notes` option
+applies the subject-exclusion criterion used in the thesis.
 
-### 5. Run statistical analyses
+### 8. Run statistical analyses
+
+- **Scripts:** `analysis/improvement_analysis.R`, `analysis/site_effects.R`, `analysis/age_bias.R`, and `analysis/age_bias_plot.py`.
+- **Inputs:** The subject-level error table and, for improvement analysis, `<SPLIT_DIR>`.
+- **Outputs:** Statistical comparisons and plots of adaptation improvements, age-related bias, and acquisition-site effects.
 
 ```bash
-Rscript analysis/improvement_analysis.R '<RESULTS_DIR>' '<SPLIT_DIR>'
+Rscript analysis/improvement_analysis.R '<RESULTS_DIR>'
 Rscript analysis/site_effects.R '<RESULTS_DIR>'
 Rscript analysis/age_bias.R '<RESULTS_DIR>'
 python analysis/age_bias_plot.py \
@@ -342,7 +318,12 @@ python analysis/age_bias_plot.py \
   --output '<PLOT_PATH>'
 ```
 
-The improvement analysis additionally requires the named fold CSVs in
-`<SPLIT_DIR>`. These steps describe the analysis workflow after preprocessing;
-model training, development inference and data preparation require access to
-the preprocessed images and pretrained weights, which are not distributed here.
+
+
+## Ensemble experiments
+
+`analysis/ensembles.py` contains the TP1-only versus TP1+TP3 frozen ensemble
+experiments (mean/learned weights, gate, and ridge stacking). Run
+`python analysis/ensembles.py --help` for its required prediction CSV, split
+directory, and output arguments. Any model selection for ensemble weights must
+use development folds rather than held-out test data.

@@ -89,7 +89,6 @@ def set_trainable_layers(model, mode, opt):
         param.requires_grad_(train)
     if not any(p.requires_grad for p in model.parameters()):
         raise ValueError(f'No trainable parameters for mode {mode}.')
-    # During training the original pipeline kept BatchNorm in eval mode;
-    # this does not change which non-normalization parameters are trainable.
+
     print_trainable_parameters_custom(model)
     return model

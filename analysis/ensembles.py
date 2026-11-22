@@ -183,7 +183,7 @@ def make_run_key(expert_set, model_type, fold, lr=None, weight_decay=None, ridge
     )
 
 
-# TORCH COMBINERS
+# COMBINERS
 
 class GlobalWeightEnsemble(nn.Module):
     """One global convex combination shared by all subjects."""

@@ -53,7 +53,6 @@ def output_column(input_column: str, ft_tag: str, seed: int, mode: str) -> str:
     stem = shorten_name(input_column.removesuffix("_pred_age"))
     ft_suffix = f"_{ft_tag}"
 
-    # Ensure that the fine-tuning tag appears exactly once.
     while stem.endswith(ft_suffix):
         stem = stem[:-len(ft_suffix)]
 
