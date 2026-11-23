@@ -5,9 +5,9 @@ This repository contains code developed and extended as part of a master's thesi
 
 ## Code provenance and acknowledgements
 
-This repository builds on the original brain-age prediction code developed by **Michela Gravina**, available [here](https://github.com/MichiUnina/Assessing-Demographic-Bias-in-Brain-Age-Prediction-Models-Using-Multiple-Deep-Learning-Paradigms).
+This repository builds on the original brain-age prediction models developed by **Michela Gravina**, available [here](https://github.com/MichiUnina/Assessing-Demographic-Bias-in-Brain-Age-Prediction-Models-Using-Multiple-Deep-Learning-Paradigms).
 
-The codebase was subsequently extended by **Georgia Kenyon** and **Sophie Martin** to investigate transfer learning for brain-age prediction.
+The codebase was subsequently extended by **[Georgia Kenyon](https://github.com/georgiakenyon)** and **[Sophie Martin](https://github.com/sophmrtn)** to investigate the use of transfer learning to apply brain-age prediction to other unseen populations.
 
 Building on their work, the code has been further adapted, extended, and reorganized for the experiments reported in this master's thesis.
 
